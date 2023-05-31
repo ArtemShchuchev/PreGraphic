@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -7,13 +8,34 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     ui->pb_clearResult->setCheckable(true);
+    ui->le_path->setText(pathToFile);
 
+    // построение графика
+    // Объект QChart является основным, в котором хранятся все данные графиков и который отвечает
+    // за само поле отображения графика, управляет осями, легенодой и прочими атрибутами графика.
+    chart = new QChart();
+    chart->legend()->setVisible(false);
+    // Объект QChartView является виджетом отображальщиком графика. В его конструктор
+    // необходимо передать ссылку на объект QChart.
+    chartView = new QChartView(chart);
+    // Создадим объект нашего класса с функционалом графика.
+    graphClass = new GraphicChart(this);
+    //chart -> chartVuiew -> данные для отображения
 
+    layout = new QGridLayout;
+    //gr->wid_graph->setLayout(layout);
+    layout->addWidget(chartView);
+    //chartView->show();
+
+    connect(graphClass, &GraphicChart::sig_graphReady, this, [&]{ViewGraph();});
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete chart;
+    delete chartView;
+    delete layout;
 }
 
 
@@ -31,17 +53,18 @@ QVector<uint32_t> MainWindow::ReadFile(QString path, uint8_t numberChannel)
     QFile file(path);
     file.open(QIODevice::ReadOnly);
 
-    if(file.isOpen() == false){
-
-        if(pathToFile.isEmpty()){
+    if(file.isOpen() == false)
+    {
+        if(pathToFile.isEmpty())
+        {
             QMessageBox mb;
             mb.setWindowTitle("Ошибка");
             mb.setText("Ошибка открытия фала");
             mb.exec();
         }
     }
-    else{
-
+    else
+    {
         //продумать как выйти из функции
     }
 
@@ -53,30 +76,34 @@ QVector<uint32_t> MainWindow::ReadFile(QString path, uint8_t numberChannel)
     readData.clear();
     uint32_t currentWorld = 0, sizeFrame = 0;
 
-    while(dataStream.atEnd() == false){
+    while(dataStream.atEnd() == false)
+    {
 
         dataStream >> currentWorld;
 
-        if(currentWorld == 0xFFFFFFFF){
+        if(currentWorld == 0xFFFFFFFF)
+        {
 
             dataStream >> currentWorld;
 
-            if(currentWorld < 0x80000000){
+            if(currentWorld < 0x80000000)
+            {
 
                 dataStream >> sizeFrame;
 
-                if(sizeFrame > 1500){
+                if(sizeFrame > 1500)
+                {
                     continue;
                 }
 
-                for(int i = 0; i<sizeFrame/sizeof(uint32_t); i++){
-
+                uint32_t worldInSf( sizeFrame/sizeof(uint32_t) );
+                for(int i = 0; i<worldInSf; i++)
+                {
                     dataStream >> currentWorld;
 
-                    if((currentWorld >> 24) == numberChannel){
-
+                    if((currentWorld >> 24) == numberChannel)
+                    {
                         readData.append(currentWorld);
-
                     }
                 }
             }
@@ -91,9 +118,11 @@ QVector<double> MainWindow::ProcessFile(const QVector<uint32_t> dataFile)
     QVector<double> resultData;
     resultData.clear();
 
-    foreach (int word, dataFile) {
+    foreach (int word, dataFile)
+    {
         word &= 0x00FFFFFF;
-        if(word > 0x800000){
+        if(word > 0x800000)
+        {
             word -= 0x1000000;
         }
 
@@ -109,17 +138,21 @@ QVector<double> MainWindow::FindMax(QVector<double> resultData)
 {
     double max = 0, sMax=0;
     //Поиск первого максиума
-    foreach (double num, resultData){
+    foreach (double num, resultData)
+    {
         //QThread::usleep(1);
-        if(num > max){
+        if(num > max)
+        {
             max = num;
         }
     }
 
     //Поиск 2го максимума
-    foreach (double num, resultData){
+    foreach (double num, resultData)
+    {
         //QThread::usleep(1);
-        if(num > sMax && (qFuzzyCompare(num, max) == false)){
+        if(num > sMax && (qFuzzyCompare(num, max) == false))
+        {
             sMax = num;
         }
     }
@@ -133,14 +166,14 @@ QVector<double> MainWindow::FindMin(QVector<double> resultData)
 {
 
     double min = 0, sMin = 0;
-    QThread::sleep(1);
+    //QThread::sleep(1);
     //Поиск первого максиума
     foreach (double num, resultData){
         if(num < min){
             min = num;
         }
     }
-    QThread::sleep(1);
+    //QThread::sleep(1);
     //Поиск 2го максимума
     foreach (double num, resultData){
         if(num < sMin && (qFuzzyCompare(num, min) == false)){
@@ -190,7 +223,8 @@ void MainWindow::on_pb_path_clicked()
 void MainWindow::on_pb_start_clicked()
 {
     //проверка на то, что файл выбран
-    if(pathToFile.isEmpty()){
+    if(pathToFile.isEmpty())
+    {
 
         QMessageBox mb;
         mb.setWindowTitle("Ошибка");
@@ -198,6 +232,7 @@ void MainWindow::on_pb_start_clicked()
         mb.exec();
         return;
     }
+    graphClass->ClearGraph(chart);
 
     ui->chB_maxSucess->setChecked(false);
     ui->chB_procFileSucces->setChecked(false);
@@ -228,7 +263,16 @@ void MainWindow::on_pb_start_clicked()
                                                  * Тут необходимо реализовать код наполнения серии
                                                  * и вызов сигнала для отображения графика
                                                  */
-
+                                                QVector<double> x, y;
+                                                x.resize(1000);
+                                                y.resize(1000);
+                                                for (uint32_t i(0); i < (uint32_t)1000; ++i)
+                                                {
+                                                    x[i] = i;
+                                                    y[i] = res[i];
+                                                }
+                                                graphClass->AddDataToGrahp(x, y);
+                                                graphClass->UpdateGraph(chart);
                                              };
 
     auto result = QtConcurrent::run(read)
@@ -239,4 +283,9 @@ void MainWindow::on_pb_start_clicked()
 
 }
 
-
+void MainWindow::ViewGraph()
+{
+    chartView->chart()->createDefaultAxes();
+    //chartView->resize(400, 400);
+    chartView->show();
+}

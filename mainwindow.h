@@ -13,6 +13,7 @@
 #include <QLineSeries>
 #include <QtCharts>
 #include <QChartView>
+#include "graphicchart.h"
 
 #define FD 1000.0 //частота дискретизации
 
@@ -38,22 +39,24 @@ public:
     //Метод отображает результаты
     void DisplayResult(QVector<double> mins, QVector<double> maxs);
 
-
-
 private slots:
     void on_pb_path_clicked();
     void on_pb_start_clicked();
-
-
+    void ViewGraph();
 
 private:
     Ui::MainWindow *ui;
-    QString pathToFile = "";
+    QString pathToFile = "C:/Users/shuaa/source/repos/Netology/Qt/testData.adc";
     uint8_t numberSelectChannel = 0xEA;
 
     QVector<uint32_t> readData;
     QVector<double> procesData;
     QVector<double> mins, maxs;
 
+    // построение графика
+    GraphicChart* graphClass;   // функционал графика
+    QChart* chart;              // указатель на график
+    QChartView* chartView;
+    QGridLayout *layout;
 };
 #endif // MAINWINDOW_H
