@@ -30,7 +30,10 @@ void GraphicChart::AddDataToGrahp(QVector<double> x, QVector<double> y)
 void GraphicChart::ClearGraph(QChart *chart)
 {
     ptrGraph->clear();              // очистка
-    chart->removeSeries(ptrGraph);  // удаление серии
+    if ( !(chart->series().empty()) )
+    {
+        chart->removeSeries(ptrGraph);  // удаление серии
+    }
 }
 
 /****************************************************/

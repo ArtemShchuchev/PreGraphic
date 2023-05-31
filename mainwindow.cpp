@@ -22,12 +22,12 @@ MainWindow::MainWindow(QWidget *parent)
     graphClass = new GraphicChart(this);
     //chart -> chartVuiew -> данные для отображения
 
-    layout = new QGridLayout;
+    //layout = new QGridLayout;
     //gr->wid_graph->setLayout(layout);
-    layout->addWidget(chartView);
+    //layout->addWidget(chartView);
     //chartView->show();
 
-    connect(graphClass, &GraphicChart::sig_graphReady, this, [&]{ViewGraph();});
+    connect(graphClass, &GraphicChart::sig_graphReady, this, &MainWindow::ViewGraph);
 }
 
 MainWindow::~MainWindow()
@@ -35,7 +35,6 @@ MainWindow::~MainWindow()
     delete ui;
     delete chart;
     delete chartView;
-    delete layout;
 }
 
 
@@ -264,12 +263,12 @@ void MainWindow::on_pb_start_clicked()
                                                  * и вызов сигнала для отображения графика
                                                  */
                                                 QVector<double> x, y;
-                                                x.resize(1000);
-                                                y.resize(1000);
-                                                for (uint32_t i(0); i < (uint32_t)1000; ++i)
+                                                x.resize((uint32_t)FD);
+                                                y.resize((uint32_t)FD);
+                                                for (uint32_t i(0); i < (uint32_t)FD; ++i)
                                                 {
-                                                    x[i] = i;
-                                                    y[i] = res[i];
+                                                    x[i] = i / FD; // время в секундах
+                                                    y[i] = res[i]; // данные с АЦП
                                                 }
                                                 graphClass->AddDataToGrahp(x, y);
                                                 graphClass->UpdateGraph(chart);
@@ -286,6 +285,6 @@ void MainWindow::on_pb_start_clicked()
 void MainWindow::ViewGraph()
 {
     chartView->chart()->createDefaultAxes();
-    //chartView->resize(400, 400);
+    chartView->resize(600, 300);
     chartView->show();
 }
