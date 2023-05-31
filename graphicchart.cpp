@@ -43,5 +43,5 @@ void GraphicChart::ClearGraph(QChart *chart)
 void GraphicChart::UpdateGraph(QChart *chart)
 {
     chart->addSeries(ptrGraph);
-    emit sig_graphReady();
+    //emit sig_graphReady();
 }

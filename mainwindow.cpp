@@ -272,6 +272,7 @@ void MainWindow::on_pb_start_clicked()
                                                 }
                                                 graphClass->AddDataToGrahp(x, y);
                                                 graphClass->UpdateGraph(chart);
+                                                emit graphClass->sig_graphReady();
                                              };
 
     auto result = QtConcurrent::run(read)
