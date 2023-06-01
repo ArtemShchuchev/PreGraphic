@@ -29,34 +29,35 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     //Метод считывает данные из исходного файла
-    QVector<uint32_t> ReadFile(QString path, uint8_t numberChannel);
+    QVector<uint32_t> ReadFile(const QString& path, const uint8_t numberChannel);
     //Метод преобразует данные физические величины, В?
-    QVector<double> ProcessFile(QVector<uint32_t> dataFile);
+    QVector<double> ProcessFile(const QVector<uint32_t>& dataFile);
     //Метод ищет Максимумы
-    QVector<double> FindMax(QVector<double> resultData);
+    QVector<double> FindMax(const QVector<double>& resultData);
     //Метод ищет минимумы
-    QVector<double> FindMin(QVector<double> resultData);
-    //Метод отображает результаты
-    void DisplayResult(QVector<double> mins, QVector<double> maxs);
+    QVector<double> FindMin(const QVector<double>& resultData);
+
 
 private slots:
+    //Метод отображает результаты
+    void DisplayResult(const QVector<double>& mins, const QVector<double>& maxs);
+
     void on_pb_path_clicked();
     void on_pb_start_clicked();
     void ViewGraph();
 
 private:
     Ui::MainWindow *ui;
-    QString pathToFile = "C:/Users/shuaa/source/repos/Netology/Qt/testData.adc";
+    QString pathToFile = "";
     uint8_t numberSelectChannel = 0xEA;
-
-    QVector<uint32_t> readData;
-    QVector<double> procesData;
-    QVector<double> mins, maxs;
 
     // построение графика
     GraphicChart* graphClass;   // функционал графика
     QChart* chart;              // указатель на график
-    QChartView* chartView;
-    QGridLayout *layout;
+    QChartView* chartView;      // виджет-отображальщик графика, принимает QChart*
+    //QGridLayout *layout;
+
+signals:
+    void sig_resultReady(const QVector<double>& mins, const QVector<double>& maxs);
 };
 #endif // MAINWINDOW_H

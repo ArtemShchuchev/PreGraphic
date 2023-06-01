@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     //layout->addWidget(chartView);
     //chartView->show();
 
+    connect(this, &MainWindow::sig_resultReady, this, &MainWindow::DisplayResult);
     connect(graphClass, &GraphicChart::sig_graphReady, this, &MainWindow::ViewGraph);
 }
 
@@ -46,9 +47,8 @@ MainWindow::~MainWindow()
         numberChannel - какой канал АЦП считать
 */
 /****************************************************/
-QVector<uint32_t> MainWindow::ReadFile(QString path, uint8_t numberChannel)
+QVector<uint32_t> MainWindow::ReadFile(const QString& path, const uint8_t numberChannel)
 {
-
     QFile file(path);
     file.open(QIODevice::ReadOnly);
 
@@ -77,26 +77,20 @@ QVector<uint32_t> MainWindow::ReadFile(QString path, uint8_t numberChannel)
 
     while(dataStream.atEnd() == false)
     {
-
         dataStream >> currentWorld;
 
         if(currentWorld == 0xFFFFFFFF)
         {
-
             dataStream >> currentWorld;
 
             if(currentWorld < 0x80000000)
             {
-
                 dataStream >> sizeFrame;
 
-                if(sizeFrame > 1500)
-                {
-                    continue;
-                }
+                if(sizeFrame > 1500) continue;
 
                 uint32_t worldInSf( sizeFrame/sizeof(uint32_t) );
-                for(int i = 0; i<worldInSf; i++)
+                for(int i(0); i<worldInSf; ++i)
                 {
                     dataStream >> currentWorld;
 
@@ -112,7 +106,7 @@ QVector<uint32_t> MainWindow::ReadFile(QString path, uint8_t numberChannel)
     return readData;
 }
 
-QVector<double> MainWindow::ProcessFile(const QVector<uint32_t> dataFile)
+QVector<double> MainWindow::ProcessFile(const QVector<uint32_t>& dataFile)
 {
     QVector<double> resultData;
     resultData.clear();
@@ -120,12 +114,9 @@ QVector<double> MainWindow::ProcessFile(const QVector<uint32_t> dataFile)
     foreach (int word, dataFile)
     {
         word &= 0x00FFFFFF;
-        if(word > 0x800000)
-        {
-            word -= 0x1000000;
-        }
+        if(word > 0x800000) word -= 0x1000000;
 
-        double res = ((double)word/6000000)*10;
+        double res = ((double)word / 6000000) * 10;
         resultData.append(res);
     }
     ui->chB_procFileSucces->setChecked(true);
@@ -133,7 +124,7 @@ QVector<double> MainWindow::ProcessFile(const QVector<uint32_t> dataFile)
     return resultData;
 }
 
-QVector<double> MainWindow::FindMax(QVector<double> resultData)
+QVector<double> MainWindow::FindMax(const QVector<double>& resultData)
 {
     double max = 0, sMax=0;
     //Поиск первого максиума
@@ -156,37 +147,38 @@ QVector<double> MainWindow::FindMax(QVector<double> resultData)
         }
     }
 
-    QVector<double> maxs = {max, sMax};
     ui->chB_maxSucess->setChecked(true);
-    return maxs;
+    return {max, sMax};
 }
 
-QVector<double> MainWindow::FindMin(QVector<double> resultData)
+QVector<double> MainWindow::FindMin(const QVector<double>& resultData)
 {
 
     double min = 0, sMin = 0;
     //QThread::sleep(1);
     //Поиск первого максиума
-    foreach (double num, resultData){
-        if(num < min){
+    foreach (double num, resultData)
+    {
+        if(num < min)
+        {
             min = num;
         }
     }
     //QThread::sleep(1);
     //Поиск 2го максимума
-    foreach (double num, resultData){
-        if(num < sMin && (qFuzzyCompare(num, min) == false)){
+    foreach (double num, resultData)
+    {
+        if(num < sMin && (qFuzzyCompare(num, min) == false))
+        {
             sMin = num;
         }
     }
 
-    QVector<double> mins = {min, sMin};
     ui->chB_minSucess->setChecked(true);
-    return mins;
-
+    return {min, sMin};
 }
 
-void MainWindow::DisplayResult(QVector<double> mins, QVector<double> maxs)
+void MainWindow::DisplayResult(const QVector<double>& mins, const QVector<double>& maxs)
 {
     ui->te_Result->append("Расчет закончен!");
 
@@ -194,7 +186,7 @@ void MainWindow::DisplayResult(QVector<double> mins, QVector<double> maxs)
     ui->te_Result->append("Второй минимум " + QString::number(mins.at(1)));
 
     ui->te_Result->append("Первый максимум " + QString::number(maxs.first()));
-    ui->te_Result->append("Второй максимум " + QString::number(maxs.at(1)));
+    ui->te_Result->append("Второй максимум " + QString::number(maxs.at(1)) + "\n");
 }
 
 
@@ -205,13 +197,16 @@ void MainWindow::DisplayResult(QVector<double> mins, QVector<double> maxs)
 /****************************************************/
 void MainWindow::on_pb_path_clicked()
 {
-    pathToFile = "";
-    ui->le_path->clear();
+    //pathToFile = "";
+    //ui->le_path->clear();
 
-    pathToFile =  QFileDialog::getOpenFileName(this,
+    QString pf = QFileDialog::getOpenFileName(this,
                                               tr("Открыть файл"), "/home/", tr("ADC Files (*.adc)"));
-
-    ui->le_path->setText(pathToFile);
+    if (pf != "")
+    {
+        pathToFile = pf;
+        ui->le_path->setText(pathToFile);
+    }
 }
 
 /****************************************************/
@@ -224,7 +219,6 @@ void MainWindow::on_pb_start_clicked()
     //проверка на то, что файл выбран
     if(pathToFile.isEmpty())
     {
-
         QMessageBox mb;
         mb.setWindowTitle("Ошибка");
         mb.setText("Выберите файл!");
@@ -238,25 +232,34 @@ void MainWindow::on_pb_start_clicked()
     ui->chB_readSucces->setChecked(false);
     ui->chB_minSucess->setChecked(false);
 
-    int selectIndex = ui->cmB_numCh->currentIndex();
     //Маски каналов
-    if(selectIndex == 0){
+    switch (ui->cmB_numCh->currentIndex())
+    {
+    case 0:
         numberSelectChannel = 0xEA;
-    }
-    else if(selectIndex == 1){
-        numberSelectChannel = 0xEF;
-    }
-    else if(selectIndex == 2){
-        numberSelectChannel = 0xED;
-    }
+        break;
 
+    case 1:
+        numberSelectChannel = 0xEF;
+        break;
+
+    case 2:
+        numberSelectChannel = 0xED;
+        break;
+
+    default:
+        numberSelectChannel = 0xEA;
+        break;
+    }
 
     auto read = [&]{ return ReadFile(pathToFile, numberSelectChannel); };
-    auto process = [&](QVector<uint32_t> res){ return ProcessFile(res);};
-    auto findMax = [&](QVector<double> res){
-                                                maxs = FindMax(res);
-                                                mins = FindMin(res);
-                                                DisplayResult(mins, maxs);
+    auto process = [&](QVector<uint32_t> dataFile){ return ProcessFile(dataFile);};
+    auto findMax = [&](QVector<double> dataProcess){
+                                                QVector<double> maxs = FindMax(dataProcess);
+                                                QVector<double> mins = FindMin(dataProcess);
+                                                // пытается вывести результат, до того как его посчитает!
+                                                //DisplayResult(mins, maxs); // НЕ правильно!!!
+                                                emit sig_resultReady(mins, maxs); // так хорошо работает
 
                                                 /*
                                                  * Тут необходимо реализовать код наполнения серии
@@ -267,8 +270,8 @@ void MainWindow::on_pb_start_clicked()
                                                 y.resize((uint32_t)FD);
                                                 for (uint32_t i(0); i < (uint32_t)FD; ++i)
                                                 {
-                                                    x[i] = i / FD; // время в секундах
-                                                    y[i] = res[i]; // данные с АЦП
+                                                    x[i] = i / FD;          // время в секундах
+                                                    y[i] = dataProcess[i];  // данные с АЦП
                                                 }
                                                 graphClass->AddDataToGrahp(x, y);
                                                 graphClass->UpdateGraph(chart);
@@ -278,9 +281,6 @@ void MainWindow::on_pb_start_clicked()
     auto result = QtConcurrent::run(read)
                                .then(process)
                                .then(findMax);
-
-
-
 }
 
 void MainWindow::ViewGraph()
